@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>GPS Tracker Dashboard</title>
+</head>
+<body>
+    <h1>Upload GPS Excel File</h1>
+    <form method="POST" enctype="multipart/form-data">
+        <input type="file" name="excel_file" required>
+        <input type="submit" value="Upload">
+    </form>
+
+    <h1>Search Device Events</h1>
+    <form method="POST">
+        Device ID: <input type="text" name="device_id" required><br>
+        From Date: <input type="date" name="from_date" required><br>
+        To Date: <input type="date" name="to_date" required><br>
+        <input type="submit" value="Search">
+    </form>
+
+    {% if result %}
+        <h2>Results:</h2>
+        <p>Number of GPS Pings: {{ result.pings }}</p>
+        <p>Number of Charging Events: {{ result.charges }}</p>
+    {% endif %}
+</body>
+</html>

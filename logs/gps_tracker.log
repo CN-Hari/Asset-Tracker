@@ -1,0 +1,70 @@
+2025-06-26 15:50:14,261 ERROR: Exception on /tracker [POST] [in /home/cnhari/gps_tracker_web/venv/lib/python3.10/site-packages/flask/app.py:875]
+Traceback (most recent call last):
+  File "/home/cnhari/gps_tracker_web/venv/lib/python3.10/site-packages/flask/app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+  File "/home/cnhari/gps_tracker_web/venv/lib/python3.10/site-packages/flask/app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+  File "/home/cnhari/gps_tracker_web/venv/lib/python3.10/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "/home/cnhari/gps_tracker_web/venv/lib/python3.10/site-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+  File "/home/cnhari/gps_tracker_web/app.py", line 1131, in tracker
+  File "/home/cnhari/gps_tracker_web/app.py", line 327, in create_combined_chart
+    all_months = set()
+  File "/home/cnhari/gps_tracker_web/venv/lib/python3.10/site-packages/pandas/core/generic.py", line 6299, in __getattr__
+    return object.__getattribute__(self, name)
+  File "/home/cnhari/gps_tracker_web/venv/lib/python3.10/site-packages/pandas/core/accessor.py", line 224, in __get__
+    accessor_obj = self._accessor(obj)
+  File "/home/cnhari/gps_tracker_web/venv/lib/python3.10/site-packages/pandas/core/indexes/accessors.py", line 643, in __new__
+    raise AttributeError("Can only use .dt accessor with datetimelike values")
+AttributeError: Can only use .dt accessor with datetimelike values
+2025-06-26 15:50:14,262 ERROR: Server Error: 500 Internal Server Error: The server encountered an internal error and was unable to complete your request. Either the server is overloaded or there is an error in the application. [in /home/cnhari/gps_tracker_web/app.py:1196]
+2025-06-26 15:50:21,792 INFO: GPS Tracker startup [in /home/cnhari/gps_tracker_web/app.py:47]
+2025-06-26 15:50:54,554 INFO: GPS Tracker startup [in /home/cnhari/gps_tracker_web/app.py:47]
+2025-06-26 15:51:10,940 ERROR: Error creating combined chart: Can only use .dt accessor with datetimelike values [in /home/cnhari/gps_tracker_web/app.py:406]
+2025-06-26 15:51:10,940 ERROR: Exception on /tracker [POST] [in /home/cnhari/gps_tracker_web/venv/lib/python3.10/site-packages/flask/app.py:875]
+Traceback (most recent call last):
+  File "/home/cnhari/gps_tracker_web/venv/lib/python3.10/site-packages/flask/app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+  File "/home/cnhari/gps_tracker_web/venv/lib/python3.10/site-packages/flask/app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+  File "/home/cnhari/gps_tracker_web/venv/lib/python3.10/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "/home/cnhari/gps_tracker_web/venv/lib/python3.10/site-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+  File "/home/cnhari/gps_tracker_web/app.py", line 1131, in tracker
+    combined_chart = create_combined_chart(ping_dates, charge_details, full_voltage_df)
+  File "/home/cnhari/gps_tracker_web/app.py", line 327, in create_combined_chart
+    [charge_dates.dt.year.rename('year'),
+  File "/home/cnhari/gps_tracker_web/venv/lib/python3.10/site-packages/pandas/core/generic.py", line 6299, in __getattr__
+    return object.__getattribute__(self, name)
+  File "/home/cnhari/gps_tracker_web/venv/lib/python3.10/site-packages/pandas/core/accessor.py", line 224, in __get__
+    accessor_obj = self._accessor(obj)
+  File "/home/cnhari/gps_tracker_web/venv/lib/python3.10/site-packages/pandas/core/indexes/accessors.py", line 643, in __new__
+    raise AttributeError("Can only use .dt accessor with datetimelike values")
+AttributeError: Can only use .dt accessor with datetimelike values
+2025-06-26 15:51:10,942 ERROR: Server Error: 500 Internal Server Error: The server encountered an internal error and was unable to complete your request. Either the server is overloaded or there is an error in the application. [in /home/cnhari/gps_tracker_web/app.py:1196]
+2025-06-26 15:51:23,779 INFO: GPS Tracker startup [in /home/cnhari/gps_tracker_web/app.py:47]
+2025-06-26 15:51:46,800 ERROR: Error creating combined chart: Can only use .dt accessor with datetimelike values [in /home/cnhari/gps_tracker_web/app.py:406]
+2025-06-26 15:51:46,800 ERROR: Exception on /tracker [POST] [in /home/cnhari/gps_tracker_web/venv/lib/python3.10/site-packages/flask/app.py:875]
+Traceback (most recent call last):
+  File "/home/cnhari/gps_tracker_web/venv/lib/python3.10/site-packages/flask/app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+  File "/home/cnhari/gps_tracker_web/venv/lib/python3.10/site-packages/flask/app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+  File "/home/cnhari/gps_tracker_web/venv/lib/python3.10/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "/home/cnhari/gps_tracker_web/venv/lib/python3.10/site-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+  File "/home/cnhari/gps_tracker_web/app.py", line 1131, in tracker
+    combined_chart = create_combined_chart(ping_dates, charge_details, full_voltage_df)
+  File "/home/cnhari/gps_tracker_web/app.py", line 327, in create_combined_chart
+    [charge_dates.dt.year.rename('year'),
+  File "/home/cnhari/gps_tracker_web/venv/lib/python3.10/site-packages/pandas/core/generic.py", line 6299, in __getattr__
+    return object.__getattribute__(self, name)
+  File "/home/cnhari/gps_tracker_web/venv/lib/python3.10/site-packages/pandas/core/accessor.py", line 224, in __get__
+    accessor_obj = self._accessor(obj)
+  File "/home/cnhari/gps_tracker_web/venv/lib/python3.10/site-packages/pandas/core/indexes/accessors.py", line 643, in __new__
+    raise AttributeError("Can only use .dt accessor with datetimelike values")
+AttributeError: Can only use .dt accessor with datetimelike values
+2025-06-26 15:51:46,802 ERROR: Server Error: 500 Internal Server Error: The server encountered an internal error and was unable to complete your request. Either the server is overloaded or there is an error in the application. [in /home/cnhari/gps_tracker_web/app.py:1196]
