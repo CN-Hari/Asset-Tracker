@@ -2,6 +2,10 @@ services:
   - type: web
     name: asset-tracker
     env: python
-    buildCommand: ""
-    startCommand: gunicorn app:app
+    buildCommand: "pip install -r gps_tracker_web/requirements.txt"
+    startCommand: "gunicorn gps_tracker_web.app:app"
     autoDeploy: true
+    envVars:
+      - key: FLASK_ENV
+        value: production
+
