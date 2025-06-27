@@ -1105,9 +1105,21 @@ def region_search():
 
     # Load device_info and calculate counts
     with sqlite3.connect(DB_NAME) as conn:
-        # Get all device info
+    # Ensure table exists before querying
+    conn.execute('''
+        CREATE TABLE IF NOT EXISTS device_info (
+            device TEXT PRIMARY KEY,
+            region TEXT,
+            branch TEXT,
+            sim_type TEXT
+        )
+    ''')
+    
+    try:
         df = pd.read_sql_query('SELECT * FROM device_info', conn)
-       
+    except pd.io.sql.DatabaseError:
+        df = pd.DataFrame(columns=['device', 'region', 'branch', 'sim_type'])
+
         # Calculate counts
         total_devices = len(df)
         region_count = df['region'].nunique()
