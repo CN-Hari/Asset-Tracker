@@ -8,3 +8,5 @@ __pycache__/
 *.log
 .env
 .DS_Store
+gps_data.db
+uploads/
