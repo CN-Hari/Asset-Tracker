@@ -640,11 +640,6 @@ REGION_TEMPLATE = """
 def init_db():
     with sqlite3.connect(DB_NAME) as conn:
         c = conn.cursor()
-        # Add performance optimizations
-        c.execute('PRAGMA journal_mode = WAL')
-        c.execute('PRAGMA synchronous = NORMAL')
-        c.execute('PRAGMA cache_size = -10000')  # 10MB cache
-        
         c.execute('DROP TABLE IF EXISTS gps_data')
         c.execute('''
             CREATE TABLE gps_data (
@@ -658,15 +653,10 @@ def init_db():
         ''')
         c.execute('CREATE INDEX IF NOT EXISTS idx_device ON gps_data(device)')
         c.execute('CREATE INDEX IF NOT EXISTS idx_date ON gps_data(tracking_date)')
-        
+
 def init_device_info_table():
     with sqlite3.connect(DB_NAME) as conn:
         c = conn.cursor()
-        # Add performance optimizations
-        c.execute('PRAGMA journal_mode = WAL')
-        c.execute('PRAGMA synchronous = NORMAL')
-        c.execute('PRAGMA cache_size = -10000')  # 10MB cache
-        
         c.execute('''
             CREATE TABLE IF NOT EXISTS device_info (
                 device TEXT PRIMARY KEY,
@@ -677,101 +667,67 @@ def init_device_info_table():
         ''')
         c.execute('CREATE INDEX IF NOT EXISTS idx_region ON device_info(region)')
         c.execute('CREATE INDEX IF NOT EXISTS idx_branch ON device_info(branch)')
-        
+
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() == 'csv'
 
 def import_device_info(file_path):
-    chunk_size = 50000  # Process in chunks of 50,000 rows
-    first_chunk = True
-    
-    for chunk in pd.read_csv(file_path, chunksize=chunk_size):
-        try:
-            chunk.columns = chunk.columns.str.strip().str.lower().str.replace(' ', '_')
+    df = pd.read_csv(file_path)
+    df.columns = df.columns.str.strip().str.lower().str.replace(' ', '_')
 
-            required = ['device_id', 'region', 'branch', 'sim_type']
-            missing = [col for col in required if col not in chunk.columns]
-            if missing:
-                raise ValueError(f"Missing required columns in metadata: {missing}")
+    required = ['device_id', 'region', 'branch', 'sim_type']
+    missing = [col for col in required if col not in df.columns]
+    if missing:
+        raise ValueError(f"Missing required columns in metadata: {missing}")
 
-            chunk = chunk[required]
-            chunk.rename(columns={'device_id': 'device'}, inplace=True)
-            chunk.dropna(subset=['device'], inplace=True)
+    df = df[required]
+    df.rename(columns={'device_id': 'device'}, inplace=True)
+    df.dropna(subset=['device'], inplace=True)
 
-            with sqlite3.connect(DB_NAME) as conn:
-                # For first chunk, replace table. For subsequent chunks, append
-                if_exists = 'replace' if first_chunk else 'append'
-                chunk.to_sql('device_info', conn, if_exists=if_exists, index=False)
-                first_chunk = False
-                
-            # Clean up memory
-            del chunk
-            gc.collect()
-            
-        except Exception as e:
-            # Clean up before re-raising
-            del chunk
-            gc.collect()
-            raise e
     with sqlite3.connect(DB_NAME) as conn:
         df.to_sql('device_info', conn, if_exists='replace', index=False)
 
 def import_csv(file_path, date_format='mmddyyyy'):
-    chunk_size = 50000  # Process in chunks of 50,000 rows
-    first_chunk = True
-    
-    for chunk in pd.read_csv(file_path, chunksize=chunk_size, low_memory=False):
+    df = pd.read_csv(file_path, low_memory=False)
+    df.columns = df.columns.str.strip().str.lower().str.replace(' ', '_')
+
+    column_mapping = {'sl._no': 'sl_no', 'event_type': 'event'}
+    df.rename(columns=column_mapping, inplace=True)
+
+    required = ['sl_no', 'device', 'event', 'tracking_date', 'battery_voltage']
+    missing = [col for col in required if col not in df.columns]
+    if missing:
+        raise ValueError(f"Missing required columns: {missing}")
+
+    df = df[required]
+
+    # Normalize text
+    df['event'] = df['event'].astype(str).str.strip().str.upper()
+    df['device'] = df['device'].astype(str).str.strip()
+
+    # Clean and convert tracking_date based on selected format
+    df['tracking_date'] = df['tracking_date'].astype(str).str.strip()
+   
+    # First try parsing with the specified format
+    try:
+        if date_format == 'ddmmyyyy':
+            df['tracking_date'] = pd.to_datetime(df['tracking_date'], dayfirst=True, errors='raise')
+        else:  # default to mm/dd/yyyy
+            df['tracking_date'] = pd.to_datetime(df['tracking_date'], format='%m/%d/%Y %I:%M:%S %p', errors='raise')
+    except:
+        # If format parsing fails, try more flexible parsing
         try:
-            chunk.columns = chunk.columns.str.strip().str.lower().str.replace(' ', '_')
+            df['tracking_date'] = pd.to_datetime(df['tracking_date'], errors='coerce')
+        except:
+            raise ValueError("Could not parse dates with either specified format or flexible parsing")
 
-            column_mapping = {'sl._no': 'sl_no', 'event_type': 'event'}
-            chunk.rename(columns=column_mapping, inplace=True)
+    # Ensure battery voltage is numeric
+    df['battery_voltage'] = pd.to_numeric(df['battery_voltage'], errors='coerce')
+    df.dropna(subset=['tracking_date', 'battery_voltage', 'device'], inplace=True)
 
-            required = ['sl_no', 'device', 'event', 'tracking_date', 'battery_voltage']
-            missing = [col for col in required if col not in chunk.columns]
-            if missing:
-                raise ValueError(f"Missing required columns: {missing}")
-
-            chunk = chunk[required]
-
-            # Normalize text
-            chunk['event'] = chunk['event'].astype(str).str.strip().str.upper()
-            chunk['device'] = chunk['device'].astype(str).str.strip()
-
-            # Clean and convert tracking_date based on selected format
-            chunk['tracking_date'] = chunk['tracking_date'].astype(str).str.strip()
-            
-            try:
-                if date_format == 'ddmmyyyy':
-                    chunk['tracking_date'] = pd.to_datetime(chunk['tracking_date'], dayfirst=True, errors='raise')
-                else:  # default to mm/dd/yyyy
-                    chunk['tracking_date'] = pd.to_datetime(chunk['tracking_date'], format='%m/%d/%Y %I:%M:%S %p', errors='raise')
-            except:
-                try:
-                    chunk['tracking_date'] = pd.to_datetime(chunk['tracking_date'], errors='coerce')
-                except:
-                    raise ValueError("Could not parse dates with either specified format or flexible parsing")
-
-            # Ensure battery voltage is numeric
-            chunk['battery_voltage'] = pd.to_numeric(chunk['battery_voltage'], errors='coerce')
-            chunk.dropna(subset=['tracking_date', 'battery_voltage', 'device'], inplace=True)
-
-            with sqlite3.connect(DB_NAME) as conn:
-                # For first chunk, replace table. For subsequent chunks, append
-                if_exists = 'replace' if first_chunk else 'append'
-                chunk.to_sql('gps_data', conn, if_exists=if_exists, index=False)
-                first_chunk = False
-                
-            # Clean up memory
-            del chunk
-            gc.collect()
-            
-        except Exception as e:
-            # Clean up before re-raising
-            del chunk
-            gc.collect()
-            raise e
-                   
+    with sqlite3.connect(DB_NAME) as conn:
+        df.to_sql('gps_data', conn, if_exists='append', index=False)
+       
 def detect_charges(df, rise_threshold=0.15, window=3):
     df = df.sort_values('tracking_date').reset_index(drop=True)
     voltages = df['battery_voltage'].tolist()
