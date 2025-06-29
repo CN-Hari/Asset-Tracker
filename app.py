@@ -1,6 +1,4 @@
-import requests
-import io
-import re
+
 import os
 import sqlite3
 from flask import Flask, request, render_template_string
@@ -221,12 +219,12 @@ TRACKER_TEMPLATE = """
       box-shadow: 0 2px 10px rgba(0,0,0,0.1);
       margin-bottom: 20px;
     }
+    /* Add this for the tracker icon */
     .tracker-icon {
       height: 1em;
       width: auto;
       vertical-align: middle;
       margin-right: 8px;
-    }
   </style>
 </head>
 <body>
@@ -236,37 +234,32 @@ TRACKER_TEMPLATE = """
     <div class="collapse navbar-collapse">
       <ul class="navbar-nav ms-auto">
         <li class="nav-item">
-          <a class="nav-link" href="/tracker">Asset Tracker</a>
+          <a class="nav-link" href="/tracker">
+     
+            Asset Tracker
+          </a>
         </li>
         <li class="nav-item">
-          <a class="nav-link" href="/region-search">Region Search</a>
+          <a class="nav-link" href="/region-search"> Region Search</a>
         </li>
       </ul>
     </div>
   </div>
 </nav>
-
 <div class="container">
   <h2 class="my-4">
     <img src="{{ url_for('static', filename='Mlogo.png') }}" class="tracker-icon" alt="Tracker">
     ASSET TRACKER
   </h2>
-
+ 
   <div class="card mb-4">
     <div class="card-header">Upload Data</div>
     <div class="card-body">
       <form method="post" enctype="multipart/form-data">
         <div class="mb-3">
-          <label class="form-label">Upload CSV File (optional)</label>
-          <input class="form-control" type="file" name="file" accept=".csv">
+          <label class="form-label">Upload CSV File</label>
+          <input class="form-control" type="file" name="file" accept=".csv" required>
         </div>
-
-        <div class="mb-3">
-          <label class="form-label">Or paste Google Drive Link to CSV</label>
-          <input class="form-control" type="url" name="gdrive_url" placeholder="https://drive.google.com/file/d/..." />
-          <div class="form-text">Make sure the link is shared with 'Anyone with the link'</div>
-        </div>
-
         <div class="mb-3">
           <label class="form-label">Date Format in File:</label>
           <div class="form-check">
@@ -278,7 +271,6 @@ TRACKER_TEMPLATE = """
             <label class="form-check-label" for="format2">DD/MM/YYYY</label>
           </div>
         </div>
-
         <button class="btn btn-primary" type="submit">Upload</button>
       </form>
     </div>
@@ -336,7 +328,7 @@ TRACKER_TEMPLATE = """
             </p>
           </div>
         </div>
-
+       
         {% if result['charge_details'] %}
         <div class="mt-4">
           <h5>Charge Cycle Details</h5>
@@ -401,8 +393,7 @@ TRACKER_TEMPLATE = """
   });
 </script>
 </body>
-</html>
-"""
+</html>"""
 
 REGION_TEMPLATE = """
 <!doctype html>
@@ -1000,87 +991,47 @@ def tracker():
     upload_success = False
     device_prefill = request.args.get('device', '')
 
-    gdrive_url = request.form.get('gdrive_url', '').strip()
-
-    if request.method == 'POST':
-        # ===== Google Drive Upload Handling =====
-        if gdrive_url and 'drive.google.com' in gdrive_url:
+    if request.method == 'POST' and 'file' in request.files:
+        file = request.files['file']
+        if file and allowed_file(file.filename):
             try:
-                import io, re, requests  # Make sure these are imported at the top
+                filename = secure_filename(f"{uuid.uuid4()}.csv")
+                file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+                file.save(file_path)
 
-                # Extract file ID
-                match = re.search(r'/d/([a-zA-Z0-9_-]+)', gdrive_url)
-                if not match:
-                    raise ValueError("Invalid Google Drive link format.")
+                # Get selected date format (default to mm/dd/yyyy if not specified)
+                date_format = request.form.get('date_format', 'mmddyyyy')
 
-                file_id = match.group(1)
-                download_url = f"https://drive.google.com/uc?export=download&id={file_id}"
-
-                # Download content
-                response = requests.get(download_url)
-                response.raise_for_status()
-
-                in_memory_file = io.StringIO(response.text)
-                df_preview = pd.read_csv(in_memory_file, nrows=5)
+                # Check file type by looking at columns
+                df_preview = pd.read_csv(file_path, nrows=5)
                 cols = df_preview.columns.str.lower().str.replace(' ', '_')
-                in_memory_file.seek(0)
-
                 if set(['device_id', 'region', 'branch']).issubset(cols):
                     init_device_info_table()
-                    import_device_info(in_memory_file)
+                    import_device_info(file_path)
                 else:
                     init_db()
-                    import_csv(in_memory_file, date_format='mmddyyyy')
-
+                    import_csv(file_path, date_format=date_format)
+               
                 upload_success = True
-
+                os.remove(file_path)
             except Exception as e:
-                return render_template_string(
-                    TRACKER_TEMPLATE,
-                    error_message=f"Error processing Google Drive file: {str(e)}"
-                )
+                return render_template_string(TRACKER_TEMPLATE,
+                                           error_message=f"Error processing file: {str(e)}")
 
-        # ===== Local File Upload Handling =====
-        elif 'file' in request.files:
-            file = request.files['file']
-            if file and allowed_file(file.filename):
-                try:
-                    filename = secure_filename(file.filename)
-                    file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-                    file.save(file_path)
-
-                    df_preview = pd.read_csv(file_path, nrows=5)
-                    cols = df_preview.columns.str.lower().str.replace(' ', '_')
-
-                    if set(['device_id', 'region', 'branch']).issubset(cols):
-                        init_device_info_table()
-                        import_device_info(file_path)
-                    else:
-                        init_db()
-                        import_csv(file_path, date_format='mmddyyyy')
-
-                    upload_success = True
-                    os.remove(file_path)
-
-                except Exception as e:
-                    return render_template_string(
-                        TRACKER_TEMPLATE,
-                        error_message=f"Error processing uploaded file: {str(e)}"
-                    )
-
-    # ===== Device Search =====
-    if all(k in request.form for k in ('device', 'from_date', 'to_date')):
+    elif all(k in request.form for k in ('device', 'from_date', 'to_date')):
         device = request.form['device'].strip()
         from_date_raw = request.form['from_date']
         to_date_raw = request.form['to_date']
-
+       
         try:
             from_date = pd.to_datetime(from_date_raw, dayfirst=True).strftime('%Y-%m-%d')
             to_date = pd.to_datetime(to_date_raw, dayfirst=True).strftime('%Y-%m-%d')
         except Exception as e:
-            return render_template_string(TRACKER_TEMPLATE, error_message=f"Invalid date format: {str(e)}")
+            return render_template_string(TRACKER_TEMPLATE,
+                                       error_message=f"Invalid date format: {str(e)}")
 
         with sqlite3.connect(DB_NAME) as conn:
+            # Get GPS data
             df = pd.read_sql_query('''
                 SELECT * FROM gps_data
                 WHERE device = ?
@@ -1088,6 +1039,7 @@ def tracker():
                 ORDER BY tracking_date
             ''', conn, params=(device, from_date, to_date))
 
+            # Get device info
             cur = conn.cursor()
             cur.execute('SELECT region, branch FROM device_info WHERE device = ?', (device,))
             info = cur.fetchone()
@@ -1096,9 +1048,11 @@ def tracker():
             df['event'] = df['event'].astype(str).str.strip().str.upper()
             df['tracking_date'] = pd.to_datetime(df['tracking_date'], errors='coerce')
 
+            # Process pings
             pings = df[df['event'].isin(['G_PING', 'REBOOT'])]
             ping_dates = pings['tracking_date'].dt.date
 
+            # Process charges - now returns detailed charge information
             charge_details = detect_charges(df)
 
             result = {
@@ -1116,6 +1070,7 @@ def tracker():
                 result['branch'] = info[1]
 
             if not ping_dates.empty or charge_details:
+                # Extract just the dates for the chart
                 charge_dates = pd.Series([c['start_time_dt'].date() for c in charge_details])
                 full_voltage_df = df[['tracking_date', 'battery_voltage']].dropna()
                 combined_chart = create_combined_chart(ping_dates, charge_details, full_voltage_df)
@@ -1185,6 +1140,4 @@ if __name__ == '__main__':
     app.run(debug=True)
 
 
-
-	
 
