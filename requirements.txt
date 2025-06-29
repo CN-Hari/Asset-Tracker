@@ -3,3 +3,4 @@ pandas
 plotly
 gunicorn
 psycopg2-binary
+requests
